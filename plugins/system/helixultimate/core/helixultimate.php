@@ -148,7 +148,7 @@ class HelixUltimate
 
         if($view == 'form' && $layout == 'edit')
         {
-            $doc->addStylesheet( \JURI::root(true) . '\plugins/system/helixultimate/assets/css/frontend-edit.css');
+            $doc->addStylesheet( \JURI::root(true) . '/plugins/system/helixultimate/assets/css/frontend-edit.css');
         }
         
         $this->add_js('popper.min.js, bootstrap.min.js');
@@ -752,7 +752,7 @@ class HelixUltimate
 
                 if (!in_array($font->fontFamily, $systemFonts))
                 {
-                    $fontUrl = '//fonts.googleapis.com/css?family='. $font->fontFamily .':100,100i,300,300i,400,400i,500,500i,700,700i,900,900i';
+                    $fontUrl = '//fonts.googleapis.com/css?family='. str_replace(' ', '+', $font->fontFamily) .':100,100i,300,300i,400,400i,500,500i,700,700i,900,900i&amp;display=swap';
                 
                     if (isset($font->fontSubset) && $font->fontSubset)
                     {
@@ -824,6 +824,9 @@ class HelixUltimate
     public function compress_js($excludes = '')
     {
         require_once(__DIR__ . '/classes/Minifier.php');
+
+        // add conflict files in the exclude
+        $excludes = ($excludes) ? $excludes . ', core.js, tinymce.min.js' : 'core.js, tinymce.min.js';
 
         $app       = JFactory::getApplication();
         $cachetime = $app->get('cachetime', 15);
@@ -989,27 +992,26 @@ class HelixUltimate
         //Compress All stylesheets
         if ($minifiedCode)
         {
+
+            // if cache file isn't exist then create it
             if (!\JFolder::exists($cache_path))
             {
                 \JFolder::create($cache_path, 0755);
             }
+            
+            $file = $cache_path . '/' . md5($md5sum) . '.css';
+            if (!\JFile::exists($file))
+            {
+                \JFile::write($file, $minifiedCode);
+            }
             else
             {
-                $file = $cache_path . '/' . md5($md5sum) . '.css';
-
-                if (!\JFile::exists($file))
+                if (filesize($file) == 0 || ((filemtime($file) + $cachetime * 60) < time()))
                 {
                     \JFile::write($file, $minifiedCode);
                 }
-                else
-                {
-                    if (filesize($file) == 0 || ((filemtime($file) + $cachetime * 60) < time()))
-                    {
-                        \JFile::write($file, $minifiedCode);
-                    }
-                }
-                $this->doc->addStylesheet(\JURI::base(true) . '/cache/com_templates/templates/' . $this->template->template . '/' . md5($md5sum) . '.css');
             }
+            $this->doc->addStylesheet(\JURI::base(true) . '/cache/com_templates/templates/' . $this->template->template . '/' . md5($md5sum) . '.css');
         }
 
         return;
